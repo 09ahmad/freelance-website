@@ -1,12 +1,12 @@
 import express, { Request, Response } from "express";
-import cors from "cors"
+import cors from "cors";
 import bcrypt from "bcryptjs";
 import { prisma } from "@repo/db/client";
 import { validateUsername, validatePassword } from "./validation";
 import jwt from "jsonwebtoken";
 const app = express();
 app.use(express.json());
-app.use(cors())
+app.use(cors());
 import dotenv from "dotenv";
 import { authMiddleware } from "./middleware";
 dotenv.config();
@@ -54,11 +54,11 @@ app.post("/api/v1/signup", async (req: Request, res: Response) => {
     });
     return;
   }
-  const token = jwt.sign({ userId: user.id }, secret,{expiresIn:"1h"});
+  const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "1h" });
   res.json({
     message: "User created successfully",
     user,
-    token
+    token: token,
   });
 });
 
@@ -94,7 +94,7 @@ app.post("/api/v1/signin", async (req: Request, res: Response) => {
   if (!secret) {
     return;
   }
-  const token = jwt.sign({ userId: user.id }, secret,{expiresIn:"1h"});
+  const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "1h" });
   res.json({
     message: "User Signed in ",
     user,
@@ -102,10 +102,89 @@ app.post("/api/v1/signin", async (req: Request, res: Response) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`server is running on port ${PORT}`);
+app.post("/api/v1/admin-signup", async (req: Request, res: Response) => {
+  const { fullName, username, password } = req.body;
+  const validUsername = validateUsername.safeParse(username);
+  const validPassword = validatePassword.safeParse(password);
+  if (!validUsername.success || !validPassword.success) {
+    res.status(403).json({
+      message: "Please enter valid type of credentials",
+    });
+    return;
+  }
+
+  const existingUser = await prisma.admin.findFirst({
+    where: {
+      username: username,
+    },
+  });
+  if (existingUser) {
+    res.json("User already exist");
+    return;
+  }
+  const admin = await prisma.admin.create({
+    data: {
+      username: username,
+      password: password,
+      name: fullName,
+    },
+  });
+  if (!secret) {
+    return;
+  }
+  if (!admin) {
+    res.json({
+      message: "unable to create admin",
+    });
+    return;
+  }
+  const token = jwt.sign({ userId: admin.id }, secret, { expiresIn: "1h" });
+  res.json({
+    message: "User created successfully",
+    admin,
+    token: token,
+  });
 });
 
+app.post("/api/v1/admin-login", async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  const validUsername = validateUsername.safeParse(username);
+  const validPassword = validatePassword.safeParse(password);
+  if (!validUsername.success || !validPassword.success) {
+    res.status(403).json({
+      message: "Please enter valid type of credentials",
+    });
+    return;
+  }
+  const admin = await prisma.admin.findFirst({
+    where: {
+      username: username,
+    },
+  });
+  if (!admin) {
+    res.status(404).json({
+      message: "unable to find admin",
+    });
+    return;
+  }
+  const comparePassword=admin.password === password
+  if (!comparePassword) {
+    res.status(404).json({
+      message: "Password mismatch",
+    });
+    return;
+  }
+
+  if (!secret) {
+    return;
+  }
+  const token = jwt.sign({ userId: admin.id }, secret, { expiresIn: "1h" });
+  res.json({
+    message: "User Signed in ",
+    admin,
+    token: token,
+  });
+});
 
 app.get("/profile", authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -127,4 +206,8 @@ app.get("/profile", authMiddleware, async (req: Request, res: Response) => {
       message: "Failed to fetch profile",
     });
   }
+});
+
+app.listen(PORT, () => {
+  console.log(`server is running on port ${PORT}`);
 });

@@ -40,7 +40,7 @@ const Index = () => {
               <Button size="lg" className="bg-white text-blue-700 hover:bg-blue-50">
                 Shop Now
               </Button>
-              <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-700">
+              <Button size="lg" variant="outline" className="bg-white text-blue-700 hover:bg-blue-50">
                 Learn More
               </Button>
             </div>

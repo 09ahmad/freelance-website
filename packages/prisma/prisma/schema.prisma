@@ -9,10 +9,18 @@ datasource db {
 
 
 
-model user{
+model User{
   id String @id @default(uuid())
   username String @unique
   password String
   name String
-  role String
+  role String @default("client")
+}
+
+model Admin{
+  id String @id @default(uuid())
+  username String @unique
+  password String
+  name String
+  role String @default("admin")
 }

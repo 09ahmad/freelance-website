@@ -1,14 +1,21 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
+import { GoogleLogin } from "@react-oauth/google";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,17 +24,18 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { googleLogin } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error("Please enter both email and password");
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       await login(email, password);
       toast.success("User login successful");
@@ -84,14 +92,12 @@ const Login = () => {
                   </Button>
                 </div>
               </div>
-              
-              <div className="text-sm">
-                <p className="text-gray-500 mb-2">Demo user account:</p>
-                <p className="text-xs text-gray-500">Client: client@example.com / client123</p>
-              </div>
-              
-              <div className="pt-2 text-center">
-                <Link to="/admin/login" className="text-sm text-primary hover:underline">
+
+              <div className="pt-1 text-center">
+                <Link
+                  to="/admin/login"
+                  className="text-sm text-primary hover:underline"
+                >
                   Admin? Login here
                 </Link>
               </div>
@@ -100,6 +106,37 @@ const Login = () => {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-2">
+                  <div className="w-full flex justify-center">
+                    <GoogleLogin
+                      onSuccess={async (credentialResponse) => {
+                        try {
+                          await googleLogin(credentialResponse);
+                          toast.success("Google login successfull");
+                          navigate("/");
+                        } catch (error) {
+                          toast.error("Google login failed");
+                        }
+                      }}
+                      onError={() => {
+                        toast.error("Google login failed");
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="text-sm text-center">
                 Don't have an account?{" "}
                 <Link to="/signup" className="text-primary hover:underline">

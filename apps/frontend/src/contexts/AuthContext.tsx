@@ -1,4 +1,5 @@
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import {
   createContext,
   useContext,
@@ -14,11 +15,18 @@ export interface User {
   email: string;
   role?: "admin" | "client";
 }
+interface GoogleUser {
+  email: string;
+  name: string;
+  picture: string;
+  sub: string;
+}
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  googleLogin: (credentialResponse: any) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAdmin: () => boolean;
@@ -62,6 +70,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const googleLogin = async (credentialResponse: any) => {
+    setIsLoading(true);
+    try {
+      const { credential } = credentialResponse;
+      if (!credential) {
+        throw new Error("Google credential missing");
+      }
+
+      const decoded = jwtDecode<GoogleUser>(credential);
+
+      const user:User = {
+        id: decoded.sub,
+        name: decoded.name,
+        email: decoded.email,
+        role: "client",
+      };
+
+      localStorage.setItem("token", credential);
+      localStorage.setItem("user", JSON.stringify(user));
+      setUser(user);
+    } catch (error) {
+      console.error(error);
+      throw new Error("Google login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const adminLogin = async (email: string, password: string) => {
     setIsLoading(true);
     try {
@@ -72,10 +108,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           password: password,
         }
       );
-      const { user, token } = response.data;
+      const { admin, token } = response.data;
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      setUser(user);
+      localStorage.setItem("admin", JSON.stringify(admin));
+      setUser(admin);
     } catch (e) {
       throw new Error("Invalid admin credentials");
     } finally {
@@ -94,7 +130,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, login, adminLogin, logout, isAdmin }}
+      value={{
+        user,
+        isLoading,
+        login,
+        googleLogin,
+        adminLogin,
+        logout,
+        isAdmin,
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -103,7 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;

@@ -88,11 +88,6 @@ const AdminLogin = () => {
                 </div>
               </div>
               
-              <div className="text-sm">
-                <p className="text-gray-500 mb-2">Demo admin account:</p>
-                <p className="text-xs text-gray-500">Admin: admin@example.com / admin123</p>
-              </div>
-              
               <div className="pt-2 text-center">
                 <Link to="/login" className="text-sm text-primary hover:underline">
                   Not an admin? Login here
