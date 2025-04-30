@@ -1,77 +1,129 @@
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import axios from "axios";
+import { useAuth } from "./AuthContext";
 
-import { createContext, useContext, useState, ReactNode } from "react";
-import { Product } from "@/components/ProductCard";
+interface ProductImage {
+  id: string;
+  url: string;
+  altText: string;
+  isPrimary: boolean;
+}
 
-// Sample data - would come from an API in a real application
-const initialProducts: Product[] = [
-  {
-    id: "1",
-    name: "Wireless Earbuds",
-    price: 49.99,
-    image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?auto=format&fit=crop&w=500&q=60",
-    description: "High quality wireless earbuds with noise cancellation."
-  },
-  {
-    id: "2",
-    name: "Smart Watch",
-    price: 129.99,
-    image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901?auto=format&fit=crop&w=500&q=60",
-    description: "Latest generation smart watch with health monitoring."
-  },
-  {
-    id: "3",
-    name: "Bluetooth Speaker",
-    price: 79.99,
-    image: "https://images.unsplash.com/photo-1721322800607-8c38375eef04?auto=format&fit=crop&w=500&q=60",
-    description: "Portable bluetooth speaker with 20h battery life."
-  },
-  {
-    id: "4",
-    name: "Leather Wallet",
-    price: 29.99,
-    image: "https://images.unsplash.com/photo-1466721591366-2d5fba72006d?auto=format&fit=crop&w=500&q=60",
-    description: "Genuine leather wallet with RFID protection."
-  },
-  {
-    id: "5",
-    name: "Pet Grooming Kit",
-    price: 39.99,
-    image: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?auto=format&fit=crop&w=500&q=60",
-    description: "Complete grooming kit for cats and dogs."
-  },
-];
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string | null;
+  stock: number;
+  images: ProductImage[];
+}
 
 interface ProductContextType {
   products: Product[];
-  addProduct: (product: Omit<Product, "id">) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  loading: boolean;
+  error: string | null;
+  addProduct: (product: FormData) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   getProduct: (id: string) => Product | undefined;
+  fetchProducts: () => Promise<void>;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export const ProductProvider = ({ children }: { children: ReactNode }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const { getToken } = useAuth();
 
-  const addProduct = (product: Omit<Product, "id">) => {
-    const newProduct = {
-      ...product,
-      id: Date.now().toString(), // Generate a unique ID
-    };
-    setProducts([...products, newProduct]);
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const response = await axios.get("http://localhost:3000/api/v1/item/product-details", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setProducts(response.data.productDetails);
+    } catch (err) {
+      setError("Failed to fetch products");
+      console.error("Error fetching products:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateProduct = (id: string, updatedFields: Partial<Product>) => {
-    setProducts(
-      products.map((product) =>
-        product.id === id ? { ...product, ...updatedFields } : product
-      )
-    );
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const addProduct = async (formData: FormData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const response = await axios.post("http://localhost:3000/api/v1/item/add-products", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setProducts([...products, response.data]);
+    } catch (err) {
+      setError("Failed to add product");
+      console.error("Error adding product:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts(products.filter((product) => product.id !== id));
+  const updateProduct = async (id: string, updatedFields: Partial<Product>) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const response = await axios.put(`http://localhost:3000/api/v1/item/api/update-products/${id}`, updatedFields, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setProducts(
+        products.map((product) =>
+          product.id === id ? response.data.updatedProduct : product
+        )
+      );
+    } catch (err) {
+      setError("Failed to update product");
+      console.error("Error updating product:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      await axios.delete(`http://localhost:3000/api/v1/item/delete-products/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setProducts(products.filter((product) => product.id !== id));
+    } catch (err) {
+      setError("Failed to delete product");
+      console.error("Error deleting product:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getProduct = (id: string) => {
@@ -80,7 +132,16 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <ProductContext.Provider
-      value={{ products, addProduct, updateProduct, deleteProduct, getProduct }}
+      value={{
+        products,
+        loading,
+        error,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        getProduct,
+        fetchProducts,
+      }}
     >
       {children}
     </ProductContext.Provider>

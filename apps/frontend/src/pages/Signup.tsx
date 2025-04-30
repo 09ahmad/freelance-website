@@ -29,7 +29,7 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:3000/api/v1/signup", {
+      const response = await axios.post("http://localhost:3000/api/v1/user/signup", {
         fullName: name,
         username: email,
         password,

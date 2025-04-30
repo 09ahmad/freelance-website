@@ -30,6 +30,7 @@ interface AuthContextType {
   adminLogin: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAdmin: () => boolean;
+  getToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,10 +56,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:3000/api/v1/signin", {
-        username: email,
-        password: password,
-      });
+      const response = await axios.post(
+        "http://localhost:3000/api/v1/user/signin",
+        {
+          username: email,
+          password: password,
+        }
+      );
       const { user, token } = response.data;
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
@@ -80,7 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const decoded = jwtDecode<GoogleUser>(credential);
 
-      const user:User = {
+      const user: User = {
         id: decoded.sub,
         name: decoded.name,
         email: decoded.email,
@@ -102,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/v1/admin-login",
+        "http://localhost:3000/api/v1/user/admin-login",
         {
           username: email,
           password: password,
@@ -110,7 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
       const { admin, token } = response.data;
       localStorage.setItem("token", token);
-      localStorage.setItem("admin", JSON.stringify(admin));
+      localStorage.setItem("user", JSON.stringify(admin));
       setUser(admin);
     } catch (e) {
       throw new Error("Invalid admin credentials");
@@ -127,7 +131,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAdmin = () => {
     return user?.role === "admin";
   };
-
+  const getToken = async (): Promise<string | null> => {
+    return localStorage.getItem("token");
+  };
   return (
     <AuthContext.Provider
       value={{
@@ -138,6 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         adminLogin,
         logout,
         isAdmin,
+        getToken,
       }}
     >
       {children}

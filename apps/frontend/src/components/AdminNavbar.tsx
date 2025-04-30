@@ -51,14 +51,6 @@ const AdminNavbar = () => {
               <Package size={16} className="mr-1" />
               Products
             </Link>
-            <Link to="/admin/customers" className="text-gray-600 hover:text-brand-600 px-3 py-2 text-sm font-medium flex items-center">
-              <Users size={16} className="mr-1" />
-              Customers
-            </Link>
-            <Link to="/admin/settings" className="text-gray-600 hover:text-brand-600 px-3 py-2 text-sm font-medium flex items-center">
-              <Settings size={16} className="mr-1" />
-              Settings
-            </Link>
             <Button variant="ghost" size="sm" className="text-gray-600 hover:text-red-600 flex items-center" onClick={handleLogout}>
               <LogOut size={16} className="mr-1" />
               Logout

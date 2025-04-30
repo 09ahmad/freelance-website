@@ -1,4 +1,3 @@
-
 import { useState, ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Upload, X } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 
@@ -20,9 +25,13 @@ const AddProduct = () => {
     category: "",
     stock: "",
   });
-  const [images, setImages] = useState<Array<{file: File, preview: string}>>([]);
+  const [images, setImages] = useState<Array<{ file: File; preview: string }>>(
+    []
+  );
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -33,12 +42,12 @@ const AddProduct = () => {
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    
-    const newImages = Array.from(e.target.files).map(file => ({
+
+    const newImages = Array.from(e.target.files).map((file) => ({
       file,
-      preview: URL.createObjectURL(file)
+      preview: URL.createObjectURL(file),
     }));
-    
+
     setImages([...images, ...newImages]);
   };
 
@@ -52,11 +61,14 @@ const AddProduct = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     // Simulate API call to add product
     console.log("Product data:", formData);
-    console.log("Product images:", images.map(img => img.file.name));
-    
+    console.log(
+      "Product images:",
+      images.map((img) => img.file.name)
+    );
+
     // In a real app, you would upload images and create product in database
     setTimeout(() => {
       setIsSubmitting(false);
@@ -65,14 +77,14 @@ const AddProduct = () => {
   };
 
   const categories = [
-    "Electronics", 
-    "Clothing", 
-    "Home & Kitchen", 
-    "Beauty", 
-    "Toys", 
-    "Sports", 
-    "Books", 
-    "Other"
+    "Electronics",
+    "Clothing",
+    "Home & Kitchen",
+    "Beauty",
+    "Toys",
+    "Sports",
+    "Books",
+    "Other",
   ];
 
   return (
@@ -122,7 +134,9 @@ const AddProduct = () => {
                 <Label htmlFor="category">Category *</Label>
                 <Select
                   value={formData.category}
-                  onValueChange={(value) => handleSelectChange("category", value)}
+                  onValueChange={(value) =>
+                    handleSelectChange("category", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
@@ -168,10 +182,13 @@ const AddProduct = () => {
 
             <div className="space-y-4">
               <Label>Product Images *</Label>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {images.map((image, index) => (
-                  <div key={index} className="relative rounded-md overflow-hidden border h-32">
+                  <div
+                    key={index}
+                    className="relative rounded-md overflow-hidden border h-32"
+                  >
                     <img
                       src={image.preview}
                       alt={`Product preview ${index + 1}`}
@@ -189,7 +206,9 @@ const AddProduct = () => {
 
                 <label className="border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center h-32 cursor-pointer hover:bg-gray-50">
                   <Upload size={24} className="text-gray-400" />
-                  <span className="mt-2 text-sm text-gray-500">Upload Image</span>
+                  <span className="mt-2 text-sm text-gray-500">
+                    Upload Image
+                  </span>
                   <input
                     type="file"
                     accept="image/*"
@@ -200,7 +219,8 @@ const AddProduct = () => {
                 </label>
               </div>
               <p className="text-xs text-gray-500">
-                Upload up to 8 images. First image will be used as the product thumbnail.
+                Upload up to 8 images. First image will be used as the product
+                thumbnail.
               </p>
             </div>
 

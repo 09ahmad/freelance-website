@@ -1,23 +1,16 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response ,Router } from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import { prisma } from "@repo/db/client";
-import { validateUsername, validatePassword } from "./validation";
+import { validateUsername, validatePassword } from "../utils/validation";
 import jwt from "jsonwebtoken";
-const app = express();
-app.use(express.json());
-app.use(cors());
-import dotenv from "dotenv";
-import { authMiddleware } from "./middleware";
-dotenv.config();
-console.log(process.env.PORT);
+const router:Router = express.Router();
+router.use(express.json());
+router.use(cors());
 console.log(process.env.JWT_SECRET);
-
 const secret = process.env.JWT_SECRET;
-const PORT = process.env.PORT || 3001;
 
-app.use(express.json());
-app.post("/api/v1/signup", async (req: Request, res: Response) => {
+router.post("/signup", async (req: Request, res: Response) => {
   const { fullName, username, password } = req.body;
   const validUsername = validateUsername.safeParse(username);
   const validPassword = validatePassword.safeParse(password);
@@ -62,7 +55,7 @@ app.post("/api/v1/signup", async (req: Request, res: Response) => {
   });
 });
 
-app.post("/api/v1/signin", async (req: Request, res: Response) => {
+router.post("/signin", async (req: Request, res: Response) => {
   const { username, password } = req.body;
   const validUsername = validateUsername.safeParse(username);
   const validPassword = validatePassword.safeParse(password);
@@ -102,7 +95,7 @@ app.post("/api/v1/signin", async (req: Request, res: Response) => {
   });
 });
 
-app.post("/api/v1/admin-signup", async (req: Request, res: Response) => {
+router.post("/admin-signup", async (req: Request, res: Response) => {
   const { fullName, username, password } = req.body;
   const validUsername = validateUsername.safeParse(username);
   const validPassword = validatePassword.safeParse(password);
@@ -146,7 +139,7 @@ app.post("/api/v1/admin-signup", async (req: Request, res: Response) => {
   });
 });
 
-app.post("/api/v1/admin-login", async (req: Request, res: Response) => {
+router.post("/admin-login", async (req: Request, res: Response) => {
   const { username, password } = req.body;
   const validUsername = validateUsername.safeParse(username);
   const validPassword = validatePassword.safeParse(password);
@@ -167,7 +160,7 @@ app.post("/api/v1/admin-login", async (req: Request, res: Response) => {
     });
     return;
   }
-  const comparePassword=admin.password === password
+  const comparePassword = admin.password === password;
   if (!comparePassword) {
     res.status(404).json({
       message: "Password mismatch",
@@ -186,28 +179,4 @@ app.post("/api/v1/admin-login", async (req: Request, res: Response) => {
   });
 });
 
-app.get("/profile", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userId = req.userId;
-
-    const userProfile = await prisma.user.findFirst({
-      where: {
-        id: userId,
-      },
-    });
-
-    res.json({
-      success: true,
-      data: userProfile,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch profile",
-    });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`server is running on port ${PORT}`);
-});
+export default router;
