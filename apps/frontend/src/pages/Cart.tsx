@@ -1,155 +1,186 @@
-
-import { useState, useEffect } from "react";
+import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import CartItem from "@/components/CartItem";
-import Layout from "@/components/Layout";
-import { Product } from "@/components/ProductCard";
-import { ShoppingBag } from "lucide-react";
-
-// Mock cart items for demonstration
-const initialCartItems = [
-  {
-    product: {
-      id: "1",
-      name: "Wireless Earbuds",
-      price: 49.99,
-      image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?auto=format&fit=crop&w=500&q=60",
-      description: "High quality wireless earbuds with noise cancellation."
-    },
-    quantity: 1
-  },
-  {
-    product: {
-      id: "2",
-      name: "Smart Watch",
-      price: 129.99,
-      image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901?auto=format&fit=crop&w=500&q=60",
-      description: "Latest generation smart watch with health monitoring."
-    },
-    quantity: 2
-  }
-];
+import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { useState } from "react";
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState<Array<{ product: Product; quantity: number }>>(initialCartItems);
-  const [isLoading, setIsLoading] = useState(false);
+  const { cartItems, removeFromCart, updateQuantity, clearCart, totalItems } = useCart();
+  const { toast } = useToast();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  const updateQuantity = (id: string, quantity: number) => {
-    setCartItems(
-      cartItems.map((item) =>
-        item.product.id === id ? { ...item, quantity } : item
-      )
-    );
-  };
-
-  const removeItem = (id: string) => {
-    setCartItems(cartItems.filter((item) => item.product.id !== id));
-  };
-
-  const handleCheckout = () => {
-    setIsLoading(true);
-    
-    // Create a WhatsApp message with cart details
-    const items = cartItems.map(item => 
-      `${item.quantity}x ${item.product.name} - $${(item.product.price * item.quantity).toFixed(2)}`
-    ).join("\n");
-    
-    const total = cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity, 
-      0
-    ).toFixed(2);
-    
-    const message = `Hello! I would like to place an order:\n\n${items}\n\nTotal: $${total}`;
-    const encodedMessage = encodeURIComponent(message);
-    
-    // Replace with your actual WhatsApp business number
-    window.open(`https://wa.me/your-whatsapp-number?text=${encodedMessage}`, '_blank');
-    
-    setIsLoading(false);
-  };
-
+  // Calculate total cost
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (total, item) => {
+      const price = typeof item.product.price === "string" 
+        ? parseFloat(item.product.price) 
+        : item.product.price;
+      return total + price * item.quantity;
+    }, 
     0
   );
 
+  const handleRemoveItem = (productId: string, productName: string) => {
+    removeFromCart(productId);
+    toast({
+      title: "Item removed",
+      description: `${productName} has been removed from your cart.`,
+    });
+  };
+
+  const handleQuantityChange = (productId: string, newQuantity: number) => {
+    updateQuantity(productId, newQuantity);
+  };
+
+  const handleCheckout = () => {
+    setCheckoutLoading(true);
+    
+    // Build WhatsApp message with cart details
+    const itemsList = cartItems
+      .map((item) => `${item.quantity}x ${item.product.name} ($${
+        typeof item.product.price === "string"
+          ? parseFloat(item.product.price).toFixed(2)
+          : item.product.price.toFixed(2)
+      } each)`)
+      .join("\n");
+
+    const message = `Hello, I would like to place an order:\n\n${itemsList}\n\nTotal: $${subtotal.toFixed(2)}`;
+    
+    // Open WhatsApp with the pre-filled message
+    window.open(
+      `https://wa.me/your-whatsapp-number?text=${encodeURIComponent(message)}`,
+      "_blank"
+    );
+    
+    // Clear cart after successful checkout
+    clearCart();
+    toast({
+      title: "Checkout completed",
+      description: "Your order has been sent to WhatsApp. Your cart has been cleared.",
+    });
+    
+    setCheckoutLoading(false);
+  };
+
   return (
-    <Layout>
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Shopping Cart</h1>
-        
-        {cartItems.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <div className="flex flex-col items-center justify-center">
-                <ShoppingBag className="h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">Your cart is empty</h3>
-                <p className="text-gray-500 mb-4">Looks like you haven't added anything to your cart yet.</p>
-                <Button asChild>
-                  <a href="/">Continue Shopping</a>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cart Items ({cartItems.reduce((acc, item) => acc + item.quantity, 0)})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1">
-                    {cartItems.map((item) => (
-                      <CartItem
-                        key={item.product.id}
-                        item={item}
-                        onUpdateQuantity={updateQuantity}
-                        onRemove={removeItem}
+    <div className="container mx-auto py-8 px-4 md:px-6">
+      <h1 className="text-3xl font-bold mb-6">Shopping Cart</h1>
+      
+      {totalItems === 0 ? (
+        <div className="text-center py-12">
+          <ShoppingBag className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <h2 className="text-xl font-medium text-gray-900 mb-2">Your cart is empty</h2>
+          <p className="text-gray-500 mb-6">Looks like you haven't added any products to your cart yet.</p>
+          <Link to="/products">
+            <Button>Continue Shopping</Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Cart Items */}
+          <div className="md:col-span-2 bg-white rounded-lg shadow-md p-6">
+            <ul className="divide-y divide-gray-200">
+              {cartItems.map((item) => (
+                <li key={item.product.id} className="py-6 flex flex-col sm:flex-row">
+                  <div className="flex-shrink-0 w-24 h-24 border rounded-md overflow-hidden">
+                    {item.product.images && item.product.images.length > 0 ? (
+                      <img
+                        src={item.product.images[0].url}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "https://via.placeholder.com/300?text=Image+Not+Available";
+                        }}
                       />
-                    ))}
+                    ) : (
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <span className="text-gray-400">No image</span>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1.5">
+                  
+                  <div className="flex-1 ml-0 sm:ml-6 mt-4 sm:mt-0">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Subtotal</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        <Link to={`/product/${item.product.id}`} className="hover:text-brand-600">
+                          {item.product.name}
+                        </Link>
+                      </h3>
+                      <p className="text-lg font-medium text-gray-900">
+                        ${typeof item.product.price === "string"
+                          ? parseFloat(item.product.price).toFixed(2)
+                          : item.product.price.toFixed(2)}
+                      </p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Shipping</span>
-                      <span>To be determined</span>
-                    </div>
-                    <div className="border-t border-gray-200 my-4"></div>
-                    <div className="flex justify-between font-medium">
-                      <span>Total</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                    
+                    <div className="mt-4 flex justify-between items-center">
+                      <div className="flex items-center border rounded-md">
+                        <button
+                          onClick={() => handleQuantityChange(item.product.id, item.quantity - 1)}
+                          className="p-2 hover:bg-gray-100"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus size={16} />
+                        </button>
+                        <span className="px-4">{item.quantity}</span>
+                        <button
+                          onClick={() => handleQuantityChange(item.product.id, item.quantity + 1)}
+                          className="p-2 hover:bg-gray-100"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleRemoveItem(item.product.id, item.product.name)}
+                        className="text-red-500 hover:text-red-700 flex items-center"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 size={18} className="mr-1" />
+                        <span>Remove</span>
+                      </button>
                     </div>
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    onClick={handleCheckout} 
-                    disabled={isLoading} 
-                    className="w-full"
-                  >
-                    {isLoading ? "Processing..." : "Checkout via WhatsApp"}
-                  </Button>
-                </CardFooter>
-              </Card>
+                </li>
+              ))}
+            </ul>
+            
+            <div className="flex justify-between mt-6 pt-6 border-t border-gray-200">
+              <Button variant="outline" onClick={clearCart}>
+                Clear Cart
+              </Button>
+              <Link to="/products">
+                <Button variant="outline">Continue Shopping</Button>
+              </Link>
             </div>
           </div>
-        )}
-      </div>
-    </Layout>
+          
+          {/* Order Summary */}
+          <div className="bg-white rounded-lg shadow-md p-6 h-fit">
+            <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+            <div className="flex justify-between py-2">
+              <span>Subtotal ({totalItems} items)</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="border-t border-gray-200 my-4"></div>
+            <div className="flex justify-between py-2 font-semibold">
+              <span>Total</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <Button
+              className="w-full mt-6"
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+            >
+              {checkoutLoading ? "Processing..." : "Checkout via WhatsApp"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

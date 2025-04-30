@@ -1,51 +1,102 @@
-
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ShoppingBag, Users, Plus, Edit, Trash2 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
-import { Product } from "@/components/ProductCard";
-
-// Mock products for demonstration
-const mockProducts = [
-  {
-    id: "1",
-    name: "Wireless Earbuds",
-    price: 49.99,
-    image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?auto=format&fit=crop&w=500&q=60",
-    description: "High quality wireless earbuds with noise cancellation.",
-    stock: 15,
-    category: "Electronics"
-  },
-  {
-    id: "2",
-    name: "Smart Watch",
-    price: 129.99,
-    image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901?auto=format&fit=crop&w=500&q=60",
-    description: "Latest generation smart watch with health monitoring.",
-    stock: 8,
-    category: "Electronics"
-  },
-  {
-    id: "3",
-    name: "Bluetooth Speaker",
-    price: 79.99,
-    image: "https://images.unsplash.com/photo-1721322800607-8c38375eef04?auto=format&fit=crop&w=500&q=60",
-    description: "Portable bluetooth speaker with 20h battery life.",
-    stock: 12,
-    category: "Electronics"
-  }
-];
+import { useProducts } from "@/contexts/ProductContext";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
-  const [products, setProducts] = useState(mockProducts);
+  const navigate = useNavigate();
+  const { products, loading, error, fetchProducts } = useProducts();
+  const { toast } = useToast();
+  const { getToken } = useAuth();
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalOrders: 0,
+    totalCustomers: 0
+  });
 
-  const handleDeleteProduct = (id: string) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      setProducts(products.filter(product => product.id !== id));
+  useEffect(() => {
+    fetchProducts();
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const token = await getToken();
+      // In a real app, you would fetch these from your API
+      setStats({
+        totalProducts: products.length,
+        totalOrders: 25, // Replace with actual API call
+        totalCustomers: 12 // Replace with actual API call
+      });
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard statistics",
+        variant: "destructive",
+      });
     }
   };
+
+  const handleEditProduct = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/admin/edit-product/${id}`);
+  };
+
+  const handleDeleteProduct = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this product?")) {
+      try {
+        const token = await getToken();
+        await fetch(`http://localhost:3000/api/v1/item/delete-products/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // Refresh the product list
+        await fetchProducts();
+        
+        toast({
+          title: "Success",
+          description: "Product deleted successfully",
+        });
+      } catch (err) {
+        console.error("Error deleting product:", err);
+        toast({
+          title: "Error",
+          description: "Failed to delete product",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  if (loading && products.length === 0) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="p-4 text-red-700 bg-red-100 rounded-md">
+          Error loading products: {error}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -65,7 +116,7 @@ const Dashboard = () => {
             <Package className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{products.length}</div>
+            <div className="text-2xl font-bold">{stats.totalProducts}</div>
             <p className="text-xs text-gray-500">+2 from last week</p>
           </CardContent>
         </Card>
@@ -75,7 +126,7 @@ const Dashboard = () => {
             <ShoppingBag className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">25</div>
+            <div className="text-2xl font-bold">{stats.totalOrders}</div>
             <p className="text-xs text-gray-500">+5 from last week</p>
           </CardContent>
         </Card>
@@ -85,7 +136,7 @@ const Dashboard = () => {
             <Users className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
             <p className="text-xs text-gray-500">+3 from last week</p>
           </CardContent>
         </Card>
@@ -104,47 +155,75 @@ const Dashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
-              <tr key={product.id} className="border-b hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <img className="h-10 w-10 rounded-md object-cover" src={product.image} alt={product.name} />
+            {products.map((product) => {
+              const primaryImage = product.images?.find(img => img.isPrimary)?.url || 
+                                 product.images?.[0]?.url;
+              return (
+                <tr 
+                  key={product.id} 
+                  className="border-b hover:bg-gray-50 cursor-pointer"
+                  onClick={() => window.open(`/product/${product.id}`, '_blank')}
+                >
+                  <td className="px-6 py-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        {primaryImage ? (
+                          <img 
+                            className="h-10 w-10 rounded-md object-cover" 
+                            src={primaryImage} 
+                            alt={product.name} 
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-md bg-gray-200 flex items-center justify-center">
+                            <Package className="h-5 w-5 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">{product.name}</div>
+                        <div className="text-gray-500 text-sm truncate max-w-xs">
+                          {product.description}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{product.name}</div>
-                      <div className="text-gray-500 text-sm truncate max-w-xs">{product.description}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    ${typeof product.price === 'string' ? 
+                      parseFloat(product.price).toFixed(2) : 
+                      product.price.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4">{product.category || 'Uncategorized'}</td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      product.stock > 10 ? 'bg-green-100 text-green-800' : 
+                      product.stock > 0 ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={(e) => handleEditProduct(product.id, e)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="text-red-600 hover:text-red-900"
+                        onClick={(e) => handleDeleteProduct(product.id, e)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">${product.price.toFixed(2)}</td>
-                <td className="px-6 py-4">{product.category}</td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    product.stock > 10 ? 'bg-green-100 text-green-800' : 
-                    product.stock > 0 ? 'bg-yellow-100 text-yellow-800' : 
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="ghost" size="icon">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="text-red-600 hover:text-red-900"
-                      onClick={() => handleDeleteProduct(product.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

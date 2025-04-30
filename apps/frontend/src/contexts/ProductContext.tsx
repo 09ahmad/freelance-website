@@ -1,19 +1,19 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
-
-interface ProductImage {
+export interface ProductImage {
   id: string;
   url: string;
-  altText: string;
-  isPrimary: boolean;
+  altText?: string;
+  isPrimary?: boolean;
+  productId: string;
 }
 
 export interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number | string;
   category: string | null;
   stock: number;
   images: ProductImage[];
@@ -87,7 +87,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     try {
       const token = await getToken();
-      const response = await axios.put(`http://localhost:3000/api/v1/item/api/update-products/${id}`, updatedFields, {
+      const response = await axios.put(`http://localhost:3000/api/v1/item/update-products/${id}`, updatedFields, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

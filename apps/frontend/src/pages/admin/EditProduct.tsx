@@ -1,5 +1,5 @@
-import { useState, ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, ChangeEvent } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,11 +18,20 @@ import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
 
-const AddProduct = () => {
+interface ProductImage {
+  id: string;
+  url: string;
+  altText?: string;
+  isPrimary?: boolean;
+}
+
+const EditProduct = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getToken } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -30,9 +39,68 @@ const AddProduct = () => {
     category: "",
     stock: "",
   });
-  const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
+  const [images, setImages] = useState<
+    Array<{ file?: File; preview: string; id?: string }>
+  >([]);
   const [error, setError] = useState<string | null>(null);
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
 
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const token = await getToken();
+        const response = await axios.get(
+          `http://localhost:3000/api/v1/item/item-details/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        // Validate response structure
+        if (!response.data?.productDetails) {
+          throw new Error("Invalid API response structure");
+        }
+
+        const product = response.data.productDetails;
+
+        setFormData({
+          name: product.name || "",
+          description: product.description || "",
+          price: product.price?.toString() || "",
+          category: product.category || "",
+          stock: product.stock?.toString() || "",
+        });
+
+        // Safely handle images array
+        setImages(
+          (product.images || []).map((img: ProductImage) => ({
+            preview: img.url,
+            id: img.id,
+            isPrimary: img.isPrimary,
+          }))
+        );
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        toast({
+          title: "Error",
+          description: "Failed to load product data",
+          variant: "destructive",
+        });
+        navigate("/admin/dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProduct();
+    } else {
+      navigate("/admin/dashboard");
+    }
+  }, [id]);
+  
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -67,7 +135,14 @@ const AddProduct = () => {
 
   const removeImage = (index: number) => {
     const newImages = [...images];
-    URL.revokeObjectURL(newImages[index].preview);
+    const removedImage = newImages[index];
+
+    // If this was an existing image (has an ID), mark it for deletion
+    if (removedImage.id) {
+      setImagesToDelete([...imagesToDelete, removedImage.id]);
+    }
+
+    URL.revokeObjectURL(removedImage.preview);
     newImages.splice(index, 1);
     setImages(newImages);
   };
@@ -75,7 +150,7 @@ const AddProduct = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     if (images.length === 0) {
       toast({
         title: "Images required",
@@ -90,21 +165,28 @@ const AddProduct = () => {
     try {
       const token = await getToken();
       const formDataToSend = new FormData();
-      
+
       // Append product data
       formDataToSend.append("name", formData.name);
       formDataToSend.append("description", formData.description);
       formDataToSend.append("price", formData.price);
       formDataToSend.append("category", formData.category);
       formDataToSend.append("stock", formData.stock);
-      
-      // Append images
+
+      // Append images to delete
+      if (imagesToDelete.length > 0) {
+        formDataToSend.append("imagesToDelete", JSON.stringify(imagesToDelete));
+      }
+
+      // Append new images
       images.forEach((image) => {
-        formDataToSend.append("images", image.file);
+        if (image.file) {
+          formDataToSend.append("images", image.file);
+        }
       });
 
-      const response = await axios.post(
-        "http://localhost:3000/api/v1/item/add-products",
+      const response = await axios.put(
+        `http://localhost:3000/api/v1/item/update-products/${id}`,
         formDataToSend,
         {
           headers: {
@@ -115,15 +197,15 @@ const AddProduct = () => {
       );
 
       toast({
-        title: "Product added successfully",
-        description: `${formData.name} has been added to your store.`,
+        title: "Product updated successfully",
+        description: `${formData.name} has been updated.`,
       });
       navigate("/admin/dashboard");
     } catch (err) {
-      console.error("Error adding product:", err);
-      setError("Failed to add product. Please try again.");
+      console.error("Error updating product:", err);
+      setError("Failed to update product. Please try again.");
       toast({
-        title: "Error adding product",
+        title: "Error updating product",
         description: error || "An unexpected error occurred",
         variant: "destructive",
       });
@@ -144,10 +226,20 @@ const AddProduct = () => {
     "Other",
   ];
 
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Add New Product</h1>
+        <h1 className="text-2xl font-bold">Edit Product</h1>
         <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>
           Cancel
         </Button>
@@ -250,7 +342,7 @@ const AddProduct = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {images.map((image, index) => (
                   <div
-                    key={index}
+                    key={image.id || index}
                     className="relative rounded-md overflow-hidden border h-32"
                   >
                     <img
@@ -265,6 +357,12 @@ const AddProduct = () => {
                     >
                       <X size={16} />
                     </button>
+                    {/* @ts-ignore */}
+                    {image.isPrimary && (
+                      <span className="absolute bottom-1 left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                        Primary
+                      </span>
+                    )}
                   </div>
                 ))}
 
@@ -291,7 +389,7 @@ const AddProduct = () => {
             </div>
 
             <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? "Adding Product..." : "Add Product"}
+              {isSubmitting ? "Updating Product..." : "Update Product"}
             </Button>
           </form>
         </CardContent>
@@ -300,4 +398,4 @@ const AddProduct = () => {
   );
 };
 
-export default AddProduct;
+export default EditProduct;

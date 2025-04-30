@@ -81,6 +81,23 @@ router.get("/product-details", authMiddleware, async (req: Request, res: Respons
   }
 });
 
+router.get("/item-details/:id", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const {id} = req.params;
+    const productDetails = await prisma.product.findUnique({
+      where:{
+        id:id
+      },
+      include:{
+        images:true
+      }
+    });
+    res.json({ productDetails });
+  } catch (error) {
+    res.status(500).json({ error: 'Could not fetch products' });
+  }
+});
+
 router.put("/update-products/:id", authMiddleware, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, description, price, category, stock } = req.body;

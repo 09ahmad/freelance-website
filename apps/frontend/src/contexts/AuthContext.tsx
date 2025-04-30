@@ -15,7 +15,7 @@ export interface User {
   email: string;
   role?: "admin" | "client";
 }
-interface GoogleUser {
+interface GoogleUser {  
   email: string;
   name: string;
   picture: string;

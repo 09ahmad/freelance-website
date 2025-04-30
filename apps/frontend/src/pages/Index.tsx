@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useProducts } from "@/contexts/ProductContext";
+import { Product } from "@/contexts/ProductContext";
 
 const Index = () => {
   const { products } = useProducts();
+  console.log("Product coming from ProductContext:", products);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState(products);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
+  console.log("Filtered Products are", filteredProducts);
+
+  useEffect(() => {
+    setFilteredProducts(products);
+  }, [products]);
 
   const handleSearch = () => {
     const filtered = products.filter(
@@ -34,13 +41,21 @@ const Index = () => {
               Premium Products for Your Lifestyle
             </h1>
             <p className="text-xl text-blue-100 mb-8">
-              Discover high-quality products delivered straight to your doorstep.
+              Discover high-quality products delivered straight to your
+              doorstep.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-blue-700 hover:bg-blue-50">
+              <Button
+                size="lg"
+                className="bg-white text-blue-700 hover:bg-blue-50"
+              >
                 Shop Now
               </Button>
-              <Button size="lg" variant="outline" className="bg-white text-blue-700 hover:bg-blue-50">
+              <Button
+                size="lg"
+                variant="outline"
+                className="bg-white text-blue-700 hover:bg-blue-50"
+              >
                 Learn More
               </Button>
             </div>
@@ -68,17 +83,23 @@ const Index = () => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredProducts.map((product) => (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
-              onAddToCart={handleAddToCart} 
+            <ProductCard
+              key={product.id}
+              // @ts-ignore
+              product={{
+                ...product,
+                price: Number(product.price), 
+              }}
+              onAddToCart={handleAddToCart}
             />
           ))}
         </div>
         {filteredProducts.length === 0 && (
           <div className="text-center py-20">
             <h3 className="text-xl font-medium mb-2">No products found</h3>
-            <p className="text-gray-500">Try a different search term or browse all products.</p>
+            <p className="text-gray-500">
+              Try a different search term or browse all products.
+            </p>
           </div>
         )}
       </section>
@@ -89,30 +110,66 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div className="flex flex-col items-center p-4">
               <div className="bg-blue-100 p-3 rounded-full mb-4">
-                <svg className="w-6 h-6 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-6 h-6 text-brand-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
               <h3 className="font-semibold mb-2">Quality Products</h3>
-              <p className="text-gray-600 text-center">We source only the best quality products from trusted suppliers.</p>
+              <p className="text-gray-600 text-center">
+                We source only the best quality products from trusted suppliers.
+              </p>
             </div>
             <div className="flex flex-col items-center p-4">
               <div className="bg-blue-100 p-3 rounded-full mb-4">
-                <svg className="w-6 h-6 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-6 h-6 text-brand-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <h3 className="font-semibold mb-2">Fast Delivery</h3>
-              <p className="text-gray-600 text-center">Quick processing and shipping to minimize wait times.</p>
+              <p className="text-gray-600 text-center">
+                Quick processing and shipping to minimize wait times.
+              </p>
             </div>
             <div className="flex flex-col items-center p-4">
               <div className="bg-blue-100 p-3 rounded-full mb-4">
-                <svg className="w-6 h-6 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                <svg
+                  className="w-6 h-6 text-brand-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
                 </svg>
               </div>
               <h3 className="font-semibold mb-2">Secure Checkout</h3>
-              <p className="text-gray-600 text-center">Your personal and payment information is always protected.</p>
+              <p className="text-gray-600 text-center">
+                Your personal and payment information is always protected.
+              </p>
             </div>
           </div>
         </div>

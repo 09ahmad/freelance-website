@@ -47,7 +47,7 @@ router.post("/signup", async (req: Request, res: Response) => {
     });
     return;
   }
-  const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "1h" });
+  const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "5h" });
   res.json({
     message: "User created successfully",
     user,
@@ -87,7 +87,7 @@ router.post("/signin", async (req: Request, res: Response) => {
   if (!secret) {
     return;
   }
-  const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "1h" });
+  const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "5h" });
   res.json({
     message: "User Signed in ",
     user,
@@ -131,7 +131,7 @@ router.post("/admin-signup", async (req: Request, res: Response) => {
     });
     return;
   }
-  const token = jwt.sign({ userId: admin.id }, secret, { expiresIn: "1h" });
+  const token = jwt.sign({ userId: admin.id }, secret, { expiresIn: "5h" });
   res.json({
     message: "User created successfully",
     admin,
@@ -171,7 +171,7 @@ router.post("/admin-login", async (req: Request, res: Response) => {
   if (!secret) {
     return;
   }
-  const token = jwt.sign({ userId: admin.id }, secret, { expiresIn: "1h" });
+  const token = jwt.sign({ userId: admin.id }, secret, { expiresIn: "5h" });
   res.json({
     message: "User Signed in ",
     admin,
