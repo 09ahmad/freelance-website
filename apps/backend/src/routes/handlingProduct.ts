@@ -70,7 +70,7 @@ router.post('/add-products',authMiddleware,upload.array('images'), async (req:Re
 });
 
 
-router.get("/product-details", authMiddleware, async (req: Request, res: Response) => {
+router.get("/product-details", async (req: Request, res: Response) => {
   try {
     const productDetails = await prisma.product.findMany({
       include: { images: true },

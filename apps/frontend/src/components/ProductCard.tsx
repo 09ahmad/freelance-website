@@ -1,9 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Product } from "@/contexts/ProductContext";
 import { useCart } from "@/contexts/CartContext";
+import { Navigate } from "react-router-dom";
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,7 @@ interface ProductCardProps {
 const ProductCard = ({ product }: ProductCardProps) => {
   const { toast } = useToast();
   const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   const primaryImage =
     product.images?.find((img) => img.isPrimary)?.url ||
@@ -28,10 +30,8 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
-    window.open(
-      `https://wa.me/your-whatsapp-number?text=I'm interested in purchasing ${product.name}`,
-      "_blank"
-    );
+    navigate("/cart")
+    
   };
 
   return (
@@ -72,22 +72,22 @@ const ProductCard = ({ product }: ProductCardProps) => {
               : product.price.toFixed(2)}
           </span>
           <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddToCart}
-              className="hover:bg-gray-100"
-            >
-              <ShoppingCart size={16} className="mr-1" />
-              Cart
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleBuyNow}
-              className="hover:bg-gray-800"
-            >
-              Buy Now
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddToCart}
+                className="hover:bg-gray-100"
+              >
+                <ShoppingCart size={16} className="mr-1" />
+                Cart
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleBuyNow}
+                className="hover:bg-gray-800"
+              >
+                Buy Now
+              </Button>
           </div>
         </div>
       </div>

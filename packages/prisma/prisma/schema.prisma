@@ -8,20 +8,26 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(uuid())
-  username String @unique
-  password String
-  name     String
-  role     String @default("client")
+  id           String @id @default(uuid())
+  username     String @unique
+  password     String
+  name         String
+  role         String @default("client")
+  refreshToken String? @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt @default(now())
 }
 
 model Admin {
-  id       String    @id @default(uuid())
-  username String    @unique
-  password String
-  name     String
-  role     String    @default("admin")
-  product  Product[]
+  id           String    @id @default(uuid())
+  username     String    @unique
+  password     String
+  name         String
+  role         String    @default("admin")
+  refreshToken String?   @db.Text
+  product      Product[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime @updatedAt @default(now())
 }
 
 model Product {

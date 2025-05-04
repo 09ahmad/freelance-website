@@ -90,6 +90,7 @@ const Index = () => {
                 ...product,
                 price: Number(product.price), 
               }}
+              // @ts-ignore
               onAddToCart={handleAddToCart}
             />
           ))}

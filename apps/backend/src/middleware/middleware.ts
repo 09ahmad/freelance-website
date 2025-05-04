@@ -42,6 +42,12 @@ export const authMiddleware = (
       return;
     }
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+       res.status(401).json({
+        message: "Token expired. Please refresh your token.",
+      });
+      return;
+    }
     res.status(403).json({
       message: "Error in middleware authorization",
     });
